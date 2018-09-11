@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"sync"
 
-	dag "github.com/ipfs/go-merkledag"
-	ft "github.com/ipfs/go-unixfs"
-	mod "github.com/ipfs/go-unixfs/mod"
+	dag "github.com/dms3-fs/go-merkledag"
+	ft "github.com/dms3-fs/go-unixfs"
+	mod "github.com/dms3-fs/go-unixfs/mod"
 
-	chunker "github.com/ipfs/go-ipfs-chunker"
-	ipld "github.com/ipfs/go-ipld-format"
+	chunker "github.com/dms3-fs/go-fs-chunker"
+	dms3ld "github.com/dms3-fs/go-ld-format"
 )
 
 type File struct {
@@ -20,8 +20,8 @@ type File struct {
 
 	desclock sync.RWMutex
 
-	dserv  ipld.DAGService
-	node   ipld.Node
+	dserv  dms3ld.DAGService
+	node   dms3ld.Node
 	nodelk sync.Mutex
 
 	RawLeaves bool
@@ -29,7 +29,7 @@ type File struct {
 
 // NewFile returns a NewFile object with the given parameters.  If the
 // Cid version is non-zero RawLeaves will be enabled.
-func NewFile(name string, node ipld.Node, parent childCloser, dserv ipld.DAGService) (*File, error) {
+func NewFile(name string, node dms3ld.Node, parent childCloser, dserv dms3ld.DAGService) (*File, error) {
 	fi := &File{
 		dserv:  dserv,
 		parent: parent,
@@ -115,7 +115,7 @@ func (fi *File) Size() (int64, error) {
 }
 
 // GetNode returns the dag node associated with this file
-func (fi *File) GetNode() (ipld.Node, error) {
+func (fi *File) GetNode() (dms3ld.Node, error) {
 	fi.nodelk.Lock()
 	defer fi.nodelk.Unlock()
 	return fi.node, nil

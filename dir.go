@@ -9,13 +9,13 @@ import (
 	"sync"
 	"time"
 
-	dag "github.com/ipfs/go-merkledag"
-	ft "github.com/ipfs/go-unixfs"
-	uio "github.com/ipfs/go-unixfs/io"
-	ufspb "github.com/ipfs/go-unixfs/pb"
+	dag "github.com/dms3-fs/go-merkledag"
+	ft "github.com/dms3-fs/go-unixfs"
+	uio "github.com/dms3-fs/go-unixfs/io"
+	ufspb "github.com/dms3-fs/go-unixfs/pb"
 
-	cid "github.com/ipfs/go-cid"
-	ipld "github.com/ipfs/go-ipld-format"
+	cid "github.com/dms3-fs/go-cid"
+	dms3ld "github.com/dms3-fs/go-ld-format"
 )
 
 var ErrNotYetImplemented = errors.New("not yet implemented")
@@ -23,7 +23,7 @@ var ErrInvalidChild = errors.New("invalid child node")
 var ErrDirExists = errors.New("directory already has entry by that name")
 
 type Directory struct {
-	dserv  ipld.DAGService
+	dserv  dms3ld.DAGService
 	parent childCloser
 
 	childDirs map[string]*Directory
@@ -45,7 +45,7 @@ type Directory struct {
 //
 // You probably don't want to call this directly. Instead, construct a new root
 // using NewRoot.
-func NewDirectory(ctx context.Context, name string, node ipld.Node, parent childCloser, dserv ipld.DAGService) (*Directory, error) {
+func NewDirectory(ctx context.Context, name string, node dms3ld.Node, parent childCloser, dserv dms3ld.DAGService) (*Directory, error) {
 	db, err := uio.NewDirectoryFromNode(dserv, node)
 	if err != nil {
 		return nil, err
@@ -75,7 +75,7 @@ func (d *Directory) SetCidBuilder(b cid.Builder) {
 
 // closeChild updates the child by the given name to the dag node 'nd'
 // and changes its own dag node
-func (d *Directory) closeChild(name string, nd ipld.Node, sync bool) error {
+func (d *Directory) closeChild(name string, nd dms3ld.Node, sync bool) error {
 	mynd, err := d.closeChildUpdate(name, nd, sync)
 	if err != nil {
 		return err
@@ -88,7 +88,7 @@ func (d *Directory) closeChild(name string, nd ipld.Node, sync bool) error {
 }
 
 // closeChildUpdate is the portion of closeChild that needs to be locked around
-func (d *Directory) closeChildUpdate(name string, nd ipld.Node, sync bool) (*dag.ProtoNode, error) {
+func (d *Directory) closeChildUpdate(name string, nd dms3ld.Node, sync bool) (*dag.ProtoNode, error) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
@@ -122,7 +122,7 @@ func (d *Directory) flushCurrentNode() (*dag.ProtoNode, error) {
 	return pbnd.Copy().(*dag.ProtoNode), nil
 }
 
-func (d *Directory) updateChild(name string, nd ipld.Node) error {
+func (d *Directory) updateChild(name string, nd dms3ld.Node) error {
 	err := d.AddUnixFSChild(name, nd)
 	if err != nil {
 		return err
@@ -149,7 +149,7 @@ func (d *Directory) childNode(name string) (FSNode, error) {
 }
 
 // cacheNode caches a node into d.childDirs or d.files and returns the FSNode.
-func (d *Directory) cacheNode(name string, nd ipld.Node) (FSNode, error) {
+func (d *Directory) cacheNode(name string, nd dms3ld.Node) (FSNode, error) {
 	switch nd := nd.(type) {
 	case *dag.ProtoNode:
 		i, err := ft.FromBytes(nd.Data())
@@ -206,7 +206,7 @@ func (d *Directory) Uncache(name string) {
 
 // childFromDag searches through this directories dag node for a child link
 // with the given name
-func (d *Directory) childFromDag(name string) (ipld.Node, error) {
+func (d *Directory) childFromDag(name string) (dms3ld.Node, error) {
 	return d.unixfsDir.Find(d.ctx, name)
 }
 
@@ -238,7 +238,7 @@ func (d *Directory) ListNames(ctx context.Context) ([]string, error) {
 	defer d.lock.Unlock()
 
 	var out []string
-	err := d.unixfsDir.ForEachLink(ctx, func(l *ipld.Link) error {
+	err := d.unixfsDir.ForEachLink(ctx, func(l *dms3ld.Link) error {
 		out = append(out, l.Name)
 		return nil
 	})
@@ -261,7 +261,7 @@ func (d *Directory) List(ctx context.Context) ([]NodeListing, error) {
 func (d *Directory) ForEachEntry(ctx context.Context, f func(NodeListing) error) error {
 	d.lock.Lock()
 	defer d.lock.Unlock()
-	return d.unixfsDir.ForEachLink(ctx, func(l *ipld.Link) error {
+	return d.unixfsDir.ForEachLink(ctx, func(l *dms3ld.Link) error {
 		c, err := d.childUnsync(l.Name)
 		if err != nil {
 			return err
@@ -348,7 +348,7 @@ func (d *Directory) Flush() error {
 }
 
 // AddChild adds the node 'nd' under this directory giving it the name 'name'
-func (d *Directory) AddChild(name string, nd ipld.Node) error {
+func (d *Directory) AddChild(name string, nd dms3ld.Node) error {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
@@ -373,7 +373,7 @@ func (d *Directory) AddChild(name string, nd ipld.Node) error {
 
 // AddUnixFSChild adds a child to the inner UnixFS directory
 // and transitions to a HAMT implementation if needed.
-func (d *Directory) AddUnixFSChild(name string, node ipld.Node) error {
+func (d *Directory) AddUnixFSChild(name string, node dms3ld.Node) error {
 	if uio.UseHAMTSharding {
 		// If the directory HAMT implementation is being used and this
 		// directory is actually a basic implementation switch it to HAMT.
@@ -439,7 +439,7 @@ func (d *Directory) Path() string {
 	return out
 }
 
-func (d *Directory) GetNode() (ipld.Node, error) {
+func (d *Directory) GetNode() (dms3ld.Node, error) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 

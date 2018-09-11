@@ -14,40 +14,40 @@ import (
 	"testing"
 	"time"
 
-	bserv "github.com/ipfs/go-blockservice"
-	dag "github.com/ipfs/go-merkledag"
-	"github.com/ipfs/go-path"
-	ft "github.com/ipfs/go-unixfs"
-	importer "github.com/ipfs/go-unixfs/importer"
-	uio "github.com/ipfs/go-unixfs/io"
+	bserv "github.com/dms3-fs/go-blockservice"
+	dag "github.com/dms3-fs/go-merkledag"
+	"github.com/dms3-fs/go-path"
+	ft "github.com/dms3-fs/go-unixfs"
+	importer "github.com/dms3-fs/go-unixfs/importer"
+	uio "github.com/dms3-fs/go-unixfs/io"
 
-	cid "github.com/ipfs/go-cid"
-	ds "github.com/ipfs/go-datastore"
-	dssync "github.com/ipfs/go-datastore/sync"
-	bstore "github.com/ipfs/go-ipfs-blockstore"
-	chunker "github.com/ipfs/go-ipfs-chunker"
-	offline "github.com/ipfs/go-ipfs-exchange-offline"
-	u "github.com/ipfs/go-ipfs-util"
-	ipld "github.com/ipfs/go-ipld-format"
+	cid "github.com/dms3-fs/go-cid"
+	ds "github.com/dms3-fs/go-datastore"
+	dssync "github.com/dms3-fs/go-datastore/sync"
+	bstore "github.com/dms3-fs/go-fs-blockstore"
+	chunker "github.com/dms3-fs/go-fs-chunker"
+	offline "github.com/dms3-fs/go-fs-exchange-offline"
+	u "github.com/dms3-fs/go-fs-util"
+	dms3ld "github.com/dms3-fs/go-ld-format"
 )
 
 func emptyDirNode() *dag.ProtoNode {
 	return dag.NodeWithData(ft.FolderPBData())
 }
 
-func getDagserv(t *testing.T) ipld.DAGService {
+func getDagserv(t *testing.T) dms3ld.DAGService {
 	db := dssync.MutexWrap(ds.NewMapDatastore())
 	bs := bstore.NewBlockstore(db)
 	blockserv := bserv.New(bs, offline.Exchange(bs))
 	return dag.NewDAGService(blockserv)
 }
 
-func getRandFile(t *testing.T, ds ipld.DAGService, size int64) ipld.Node {
+func getRandFile(t *testing.T, ds dms3ld.DAGService, size int64) dms3ld.Node {
 	r := io.LimitReader(u.NewTimeSeededRand(), size)
 	return fileNodeFromReader(t, ds, r)
 }
 
-func fileNodeFromReader(t *testing.T, ds ipld.DAGService, r io.Reader) ipld.Node {
+func fileNodeFromReader(t *testing.T, ds dms3ld.DAGService, r io.Reader) dms3ld.Node {
 	nd, err := importer.BuildDagFromReader(ds, chunker.DefaultSplitter(r))
 	if err != nil {
 		t.Fatal(err)
@@ -128,7 +128,7 @@ func compStrArrs(a, b []string) bool {
 	return true
 }
 
-func assertFileAtPath(ds ipld.DAGService, root *Directory, expn ipld.Node, pth string) error {
+func assertFileAtPath(ds dms3ld.DAGService, root *Directory, expn dms3ld.Node, pth string) error {
 	exp, ok := expn.(*dag.ProtoNode)
 	if !ok {
 		return dag.ErrNotProtobuf
@@ -182,7 +182,7 @@ func assertFileAtPath(ds ipld.DAGService, root *Directory, expn ipld.Node, pth s
 	return nil
 }
 
-func catNode(ds ipld.DAGService, nd *dag.ProtoNode) ([]byte, error) {
+func catNode(ds dms3ld.DAGService, nd *dag.ProtoNode) ([]byte, error) {
 	r, err := uio.NewDagReader(context.TODO(), nd, ds)
 	if err != nil {
 		return nil, err
@@ -192,7 +192,7 @@ func catNode(ds ipld.DAGService, nd *dag.ProtoNode) ([]byte, error) {
 	return ioutil.ReadAll(r)
 }
 
-func setupRoot(ctx context.Context, t *testing.T) (ipld.DAGService, *Root) {
+func setupRoot(ctx context.Context, t *testing.T) (dms3ld.DAGService, *Root) {
 	ds := getDagserv(t)
 
 	root := emptyDirNode()
@@ -300,7 +300,7 @@ func TestDirectoryLoadFromDag(t *testing.T) {
 	dirhash := dir.Cid()
 
 	top := emptyDirNode()
-	top.SetLinks([]*ipld.Link{
+	top.SetLinks([]*dms3ld.Link{
 		{
 			Name: "a",
 			Cid:  fihash,

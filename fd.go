@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	mod "github.com/ipfs/go-unixfs/mod"
+	mod "github.com/dms3-fs/go-unixfs/mod"
 
 	context "context"
 )

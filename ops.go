@@ -6,10 +6,10 @@ import (
 	gopath "path"
 	"strings"
 
-	path "github.com/ipfs/go-path"
+	path "github.com/dms3-fs/go-path"
 
-	cid "github.com/ipfs/go-cid"
-	ipld "github.com/ipfs/go-ipld-format"
+	cid "github.com/dms3-fs/go-cid"
+	dms3ld "github.com/dms3-fs/go-ld-format"
 )
 
 // Mv moves the file or directory at 'src' to 'dst'
@@ -83,7 +83,7 @@ func lookupDir(r *Root, path string) (*Directory, error) {
 }
 
 // PutNode inserts 'nd' at 'path' in the given mfs
-func PutNode(r *Root, path string, nd ipld.Node) error {
+func PutNode(r *Root, path string, nd dms3ld.Node) error {
 	dirp, filename := gopath.Split(path)
 	if filename == "" {
 		return fmt.Errorf("cannot create file with empty name")

@@ -1,4 +1,4 @@
-// package mfs implements an in memory model of a mutable IPFS filesystem.
+// package mfs implements an in memory model of a mutable DMS3FS filesystem.
 //
 // It consists of four main structs:
 // 1) The Filesystem
@@ -16,12 +16,12 @@ import (
 	"sync"
 	"time"
 
-	dag "github.com/ipfs/go-merkledag"
-	ft "github.com/ipfs/go-unixfs"
+	dag "github.com/dms3-fs/go-merkledag"
+	ft "github.com/dms3-fs/go-unixfs"
 
-	cid "github.com/ipfs/go-cid"
-	ipld "github.com/ipfs/go-ipld-format"
-	logging "github.com/ipfs/go-log"
+	cid "github.com/dms3-fs/go-cid"
+	dms3ld "github.com/dms3-fs/go-ld-format"
+	logging "github.com/dms3-fs/go-log"
 )
 
 var ErrNotExist = errors.New("no such rootfs")
@@ -31,7 +31,7 @@ var log = logging.Logger("mfs")
 var ErrIsDirectory = errors.New("error: is a directory")
 
 type childCloser interface {
-	closeChild(string, ipld.Node, bool) error
+	closeChild(string, dms3ld.Node, bool) error
 }
 
 type NodeType int
@@ -43,7 +43,7 @@ const (
 
 // FSNode represents any node (directory, root, or file) in the mfs filesystem.
 type FSNode interface {
-	GetNode() (ipld.Node, error)
+	GetNode() (dms3ld.Node, error)
 	Flush() error
 	Type() NodeType
 }
@@ -61,7 +61,7 @@ type Root struct {
 type PubFunc func(context.Context, *cid.Cid) error
 
 // NewRoot creates a new Root and starts up a republisher routine for it.
-func NewRoot(parent context.Context, ds ipld.DAGService, node *dag.ProtoNode, pf PubFunc) (*Root, error) {
+func NewRoot(parent context.Context, ds dms3ld.DAGService, node *dag.ProtoNode, pf PubFunc) (*Root, error) {
 
 	var repub *Republisher
 	if pf != nil {
@@ -76,7 +76,7 @@ func NewRoot(parent context.Context, ds ipld.DAGService, node *dag.ProtoNode, pf
 
 	pbn, err := ft.FromBytes(node.Data())
 	if err != nil {
-		log.Error("IPNS pointer was not unixfs node")
+		log.Error("DMS3NS pointer was not unixfs node")
 		return nil, err
 	}
 
@@ -144,7 +144,7 @@ func (kr *Root) FlushMemFree(ctx context.Context) error {
 
 // closeChild implements the childCloser interface, and signals to the publisher that
 // there are changes ready to be published.
-func (kr *Root) closeChild(name string, nd ipld.Node, sync bool) error {
+func (kr *Root) closeChild(name string, nd dms3ld.Node, sync bool) error {
 	err := kr.GetDirectory().dserv.Add(context.TODO(), nd)
 	if err != nil {
 		return err
